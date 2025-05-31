@@ -18,13 +18,13 @@ struct DashboardView: View {
                 Group {
                     switch selectedTab {
                     case 0:
-                        TrendingView()
+                        TrendingView(navigationPath: $navigationPath)
                     case 1:
-                        HomeView()
+                        HomeView(navigationPath: $navigationPath)
                     case 2:
                         ProfileView()
                     default:
-                        EmptyView()
+                        Text("Not Found!")
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -86,7 +86,7 @@ struct TabButton: View {
                 ZStack {
                     if selectedTab == index {
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.blue)
+                            .fill(AppColors.orangeAccent)
                             .matchedGeometryEffect(id: "bg", in: namespace)
                     }
                 }

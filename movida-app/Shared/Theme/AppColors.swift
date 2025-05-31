@@ -10,10 +10,15 @@ import SwiftUI
 
 struct AppColors {
     static let black = ColorUtils.fromHex("#121212")
+    static let white = ColorUtils.fromHex("#FBFBFB")
+    static let orangeAccent = ColorUtils.fromHex("#F75D45")
+    static let darkBlue = ColorUtils.fromHex("#1C1B29")
 }
 
 struct ColorUtils {
     static func fromHex(_ hex: String) -> Color {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+
         var int: UInt64 = 0
         Scanner(string: hex).scanHexInt64(&int)
 
@@ -45,3 +50,4 @@ struct ColorUtils {
                      opacity: Double(a) / 255)
     }
 }
+

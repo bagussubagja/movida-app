@@ -1,25 +1,32 @@
-//
-//  RootRouter.swift
-//  movida-app
-//
-//  Created by Bagus Subagja on 25/05/25.
-//
-
-
 import SwiftUI
 
 struct RootRouter: View {
     @State private var path = NavigationPath()
     @StateObject private var themeManager = AppThemeManager()
+    @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
 
     var body: some View {
         NavigationStack(path: $path) {
-            DashboardView(navigationPath: $path)
+            Group {
+                if isLoggedIn {
+                    DashboardView(navigationPath: $path)
+                } else {
+                    LoginView(onLoginSuccess: {
+                        isLoggedIn = true
+                    })
+                }
+            }
+            .navigationDestination(for: AppRoute.self) { route in
+                switch route {
+                case .detail(let id):
+                    DetailMovieView(movieId: id)
+                }
+            }
         }
     }
 }
 
-struct DetailRoute: Hashable {
-    let title: String
-    let subtitle: String
+
+enum AppRoute: Hashable {
+    case detail(String)
 }

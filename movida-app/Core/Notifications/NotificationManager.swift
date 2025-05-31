@@ -24,9 +24,9 @@ final class NotificationManager {
 
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("❌ Failed to schedule notification: \(error.localizedDescription)")
+                print("Failed to schedule notification: \(error.localizedDescription)")
             } else {
-                print("✅ Notification scheduled")
+                print("Notification scheduled")
             }
         }
     }

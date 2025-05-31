@@ -19,7 +19,8 @@ class APIClient {
         _ type: T.Type,
         from url: String,
         method: HTTPMethod = .get,
-        parameters: [String: Any]? = nil
+        parameters: [String: Any]? = nil,
+        headers: HTTPHeaders? = nil
     ) -> AnyPublisher<T, Error> {
         
         let encoding: ParameterEncoding = (method == .get) ? URLEncoding.default : JSONEncoding.default
@@ -38,8 +39,14 @@ class APIClient {
             print("Parameters: nil")
         }
         
+        if let headers = headers {
+            print("Headers: \(headers.dictionary)")
+        } else {
+            print("Headers: nil")
+        }
+        
         return Future { promise in
-            AF.request(url, method: method, parameters: parameters, encoding: encoding)
+            AF.request(url, method: method, parameters: parameters, encoding: encoding, headers: headers)
                 .validate()
                 .responseData { response in
                     switch response.result {
@@ -76,4 +83,3 @@ class APIClient {
         .eraseToAnyPublisher()
     }
 }
-

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		FF1F83E72DE9A0CC00FCA552 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = FF1F83E62DE9A0CC00FCA552 /* Alamofire */; };
 		FF1F83EA2DE9A17900FCA552 /* RealmSwift in Frameworks */ = {isa = PBXBuildFile; productRef = FF1F83E92DE9A17900FCA552 /* RealmSwift */; };
+		FF1F84C02DEB130200FCA552 /* YouTubePlayerKit in Frameworks */ = {isa = PBXBuildFile; productRef = FF1F84BF2DEB130200FCA552 /* YouTubePlayerKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +50,7 @@
 			files = (
 				FF1F83EA2DE9A17900FCA552 /* RealmSwift in Frameworks */,
 				FF1F83E72DE9A0CC00FCA552 /* Alamofire in Frameworks */,
+				FF1F84C02DEB130200FCA552 /* YouTubePlayerKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -109,6 +111,7 @@
 			packageProductDependencies = (
 				FF1F83E62DE9A0CC00FCA552 /* Alamofire */,
 				FF1F83E92DE9A17900FCA552 /* RealmSwift */,
+				FF1F84BF2DEB130200FCA552 /* YouTubePlayerKit */,
 			);
 			productName = "movida-app";
 			productReference = FF1F82F22DE998E700FCA552 /* movida-app.app */;
@@ -189,6 +192,7 @@
 			packageReferences = (
 				FF1F83E52DE9A0CC00FCA552 /* XCRemoteSwiftPackageReference "Alamofire" */,
 				FF1F83E82DE9A17900FCA552 /* XCRemoteSwiftPackageReference "realm-swift" */,
+				FF1F84BE2DEB130200FCA552 /* XCRemoteSwiftPackageReference "YouTubePlayerKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FF1F82F32DE998E700FCA552 /* Products */;
@@ -571,6 +575,14 @@
 				kind = branch;
 			};
 		};
+		FF1F84BE2DEB130200FCA552 /* XCRemoteSwiftPackageReference "YouTubePlayerKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SvenTiigi/YouTubePlayerKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -583,6 +595,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FF1F83E82DE9A17900FCA552 /* XCRemoteSwiftPackageReference "realm-swift" */;
 			productName = RealmSwift;
+		};
+		FF1F84BF2DEB130200FCA552 /* YouTubePlayerKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FF1F84BE2DEB130200FCA552 /* XCRemoteSwiftPackageReference "YouTubePlayerKit" */;
+			productName = YouTubePlayerKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -17,6 +17,9 @@ class AppThemeManager: ObservableObject {
     }
 
     init() {
+        if UserDefaults.standard.object(forKey: "isDarkMode") == nil {
+            UserDefaults.standard.set(true, forKey: "isDarkMode")
+        }
         self.isDarkMode = UserDefaults.standard.bool(forKey: "isDarkMode")
     }
 
