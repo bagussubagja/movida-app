@@ -11,8 +11,6 @@ import SwiftUI
 enum TabCategory: String, CaseIterable {
     case movies = "Movies"
     case tvSeries = "Tv Series"
-    case documentary = "Documentary"
-    case sports = "Sports"
 }
 
 struct CustomTabBarView: View {

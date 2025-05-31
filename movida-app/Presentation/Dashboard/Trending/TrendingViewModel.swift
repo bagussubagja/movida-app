@@ -11,9 +11,6 @@ import Combine
 class TrendingViewModel: ObservableObject {
     @Published var trendingMovies: [Movie] = []
     @Published var state: ViewState = .idle
-    
-    @Published var snackbarMessage: String? = nil
-    @Published var showSnackbar: Bool = false
 
     private let useCase: GetTrendingMoviesUseCase
     private var cancellables = Set<AnyCancellable>()
