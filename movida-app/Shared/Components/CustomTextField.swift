@@ -17,23 +17,23 @@ struct CustomTextField: View {
     var body: some View {
         HStack {
             Image(systemName: icon)
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(.secondary)
 
             if isSecure {
                 SecureField(placeholder, text: $text)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .disableAutocorrection(true)
                     .autocapitalization(.none)
             } else {
                 TextField(placeholder, text: $text)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .disableAutocorrection(true)
                     .autocapitalization(.none)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(AppColors.darkBlue)
+        .background(.regularMaterial)
         .cornerRadius(28)
     }
 }

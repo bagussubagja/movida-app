@@ -8,218 +8,293 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @Binding var navigationPath: NavigationPath
+    @EnvironmentObject var themeManager: AppThemeManager
+    @State private var showingInfoPage: InfoPage?
     
-    let user = UserProfile(
-        name: "Bagus Subagja",
-        username: "@bagussubagja",
-        profileImage: "person.circle.fill",
-        moviesWatched: 154,
-        hoursWatched: 312,
-        watchlistCount: 23
-    )
-    
-    let favoriteMovies = [
-        MovieItemModel(title: "Dune: Part Two", imageUrl: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"),
-        MovieItemModel(title: "Interstellar", imageUrl: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg"),
-        MovieItemModel(title: "The Dark Knight", imageUrl: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg"),
-        MovieItemModel(title: "Parasite", imageUrl: "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg")
-    ]
-    
-    let watchlist = [
-        MovieItemModel(title: "Oppenheimer", imageUrl: "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg"),
-        MovieItemModel(title: "Poor Things", imageUrl: "https://image.tmdb.org/t/p/w500/kCGlA_y0g3RshN1I1hYI4T7IIFh.jpg"),
-        MovieItemModel(title: "Spider-Man: Across the Spider-Verse", imageUrl: "https://image.tmdb.org/t/p/w500/8Vt6mWEReuy4Of61Lp5Sj74xUh8.jpg"),
-        MovieItemModel(title: "The Creator", imageUrl: "https://image.tmdb.org/t/p/w500/vBZ0qvaRxqEhZwl6LWmruJqWE8A.jpg")
-    ]
+    @StateObject private var viewModel: ProfileViewModel
+    var onSignOut: () -> Void
+
+    init(navigationPath: Binding<NavigationPath>, onSignOut: @escaping () -> Void) {
+        self._navigationPath = navigationPath
+        self.onSignOut = onSignOut
+        self._viewModel = StateObject(wrappedValue: ProfileViewModel())
+    }
 
     var body: some View {
-        NavigationView {
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 24) {
-                    ProfileHeaderView(user: user)
-                    
-                    StatsView(user: user)
-                    
-                    MovieCarouselView(title: "Favorite Movies", movies: favoriteMovies)
-                    
-                    MovieCarouselView(title: "My Watchlist", movies: watchlist)
-                    
-                    SettingsView()
-                    
-                    Spacer()
+        ZStack {
+            Color(UIColor.systemGroupedBackground).ignoresSafeArea()
+
+            switch viewModel.state {
+            case .idle, .loading:
+                ProgressView()
+            case .success:
+                successView
+            case .failure(let error):
+                errorView(error: error)
+            }
+        }
+        .navigationTitle("My Profile")
+        .navigationBarHidden(true)
+        .onAppear { viewModel.onAppear() }
+        .sheet(item: $showingInfoPage) { page in
+            NavigationView {
+                InformationView(title: page.title, content: page.content)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") { showingInfoPage = nil }
+                        }
+                    }
+                    .preferredColorScheme(themeManager.colorScheme)
+            }
+        }
+    }
+    
+    private var successView: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 32) {
+                Text("My Profile").font(.title2.bold()).padding(.top)
+
+                if let user = viewModel.user {
+                    ProfileHeaderView(email: user.email, name: user.email?.components(separatedBy: "@").first ?? "User")
                 }
-                .padding(.vertical)
+                
+                StatsView(
+                    favoriteCount: viewModel.favoriteMovies.count,
+                    watchlistCount: viewModel.watchlistMovies.count
+                )
+                
+                // Section Favorite
+                SectionView(
+                    title: "Favorite Movies",
+                    movies: viewModel.favoriteMovies.map { MovieItemModel(id: $0.movieId, title: $0.title, imageUrl: $0.imageUrl) },
+                    emptyState: EmptyStateView(iconName: "heart.slash.fill", title: "No Favorites Yet", subtitle: "Movies you mark as favorite will appear here."),
+                    navigationPath: $navigationPath
+                )
+                
+                // Section Watchlist
+                SectionView(
+                    title: "Watchlist",
+                    movies: viewModel.watchlistMovies.map { MovieItemModel(id: $0.id, title: $0.title, imageUrl: $0.imageUrl) },
+                    emptyState: EmptyStateView(iconName: "bookmark.slash.fill", title: "Empty Watchlist", subtitle: "Movies you add to watch later will appear here."),
+                    navigationPath: $navigationPath
+                )
+
+                SettingsView(
+                    themeManager: themeManager,
+                    onShowInfoPage: { pageType in self.showingInfoPage = InfoPage(type: pageType) },
+                    onSignOut: {
+                        Task {
+                            try? await viewModel.signOut()
+                            onSignOut()
+                        }
+                    }
+                )
+                Spacer()
+                SpaceBox(height: 50)
             }
-            .background(Color.black.ignoresSafeArea())
-            .navigationTitle("My Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .padding(.vertical)
         }
     }
-}
-
-// MARK: - Subviews
-
-struct ProfileHeaderView: View {
-    let user: UserProfile
     
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: user.profileImage)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 80, height: 80)
-                .clipShape(Circle())
-                .foregroundColor(.gray)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(user.name)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                Text(user.username)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-            }
-            
-            Spacer()
+    private func errorView(error: Error) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 50)).foregroundColor(.yellow)
+            Text("Failed to Load Data").font(.headline)
+            Text(error.localizedDescription).font(.caption).foregroundColor(.gray).multilineTextAlignment(.center).padding(.horizontal)
+            Button("Try Again") { viewModel.onAppear() }.buttonStyle(.borderedProminent)
         }
-        .padding(.horizontal)
     }
 }
 
-struct StatsView: View {
-    let user: UserProfile
+private struct ProfileHeaderView: View {
+    let email: String?
+    let name: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "person.crop.circle.fill").font(.system(size: 80)).foregroundColor(.secondary)
+            Text(name).font(.title.bold())
+            Text(email ?? "").font(.subheadline).foregroundColor(.secondary)
+        }.padding()
+    }
+}
+
+private struct StatsView: View {
+    let favoriteCount: Int
+    let watchlistCount: Int
     
     var body: some View {
         HStack {
-            StatItemView(count: user.moviesWatched, label: "Movies Watched")
             Spacer()
-            StatItemView(count: user.hoursWatched, label: "Hours Watched")
+            StatItemView(count: favoriteCount, label: "Favorites")
             Spacer()
-            StatItemView(count: user.watchlistCount, label: "In Watchlist")
+            StatItemView(count: watchlistCount, label: "Watchlist")
+            Spacer()
         }
-        .padding()
-        .background(Color.gray.opacity(0.15))
-        .cornerRadius(16)
-        .padding(.horizontal)
+        .padding().background(.regularMaterial).cornerRadius(16).padding(.horizontal)
     }
 }
 
-struct StatItemView: View {
+private struct StatItemView: View {
     let count: Int
     let label: String
-    
     var body: some View {
         VStack {
-            Text("\(count)")
-                .font(.title3)
-                .fontWeight(.bold)
-            Text(label)
-                .font(.caption)
-                .foregroundColor(.gray)
+            Text("\(count)").font(.title3).fontWeight(.bold)
+            Text(label).font(.caption).foregroundColor(.secondary)
         }
     }
 }
 
-struct MovieCarouselView: View {
+private struct SectionView<EmptyState: View>: View {
     let title: String
     let movies: [MovieItemModel]
+    let emptyState: EmptyState
+    @Binding var navigationPath: NavigationPath
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
-                .padding(.horizontal)
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(movies) { movie in
-                        AsyncImage(url: URL(string: movie.imageUrl)) { image in
-                            image.resizable()
-                        } placeholder: {
-                            Color.gray.opacity(0.3)
+        VStack(alignment: .leading, spacing: 16) {
+            Text(title).font(.headline).padding(.horizontal)
+            if movies.isEmpty {
+                emptyState
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(movies) { movie in
+                            Button(action: { navigationPath.append(AppRoute.detail(movie.id)) }) {
+                                AsyncImage(url: URL(string: movie.imageUrl)) { image in image.resizable() }
+                                placeholder: { Color.secondary.opacity(0.3) }
+                                .frame(width: 130, height: 180).clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
                         }
-                        .frame(width: 130, height: 180)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
+                    }.padding(.horizontal)
                 }
-                .padding(.horizontal)
             }
         }
     }
 }
 
-struct SettingsView: View {
+private struct EmptyStateView: View {
+    let iconName: String
+    let title: String
+    let subtitle: String
+
     var body: some View {
-        VStack(spacing: 0) {
-            SettingsRow(title: "Edit Profile", icon: "person.fill")
-            Divider().background(Color.gray.opacity(0.3))
-            SettingsRow(title: "Notifications", icon: "bell.fill")
-            Divider().background(Color.gray.opacity(0.3))
-            SettingsRow(title: "Privacy & Security", icon: "lock.shield.fill")
-            Divider().background(Color.gray.opacity(0.3))
-            SettingsRow(title: "Help & Support", icon: "questionmark.circle.fill")
-            Divider().background(Color.gray.opacity(0.3))
-            LogoutButton()
+        VStack(spacing: 16) {
+            Image(systemName: iconName).font(.system(size: 44)).foregroundColor(.secondary.opacity(0.6))
+            VStack(spacing: 4) {
+                Text(title).font(.headline)
+                Text(subtitle).font(.subheadline).foregroundColor(.secondary).multilineTextAlignment(.center).padding(.horizontal)
+            }
         }
-        .background(Color.gray.opacity(0.15))
-        .cornerRadius(16)
+        .frame(maxWidth: .infinity).padding(.vertical, 32).background(.regularMaterial)
+        .cornerRadius(16).padding(.horizontal)
+    }
+}
+
+private struct SettingsView: View {
+    @ObservedObject var themeManager: AppThemeManager
+    var onShowInfoPage: (InfoPage.PageType) -> Void
+    var onSignOut: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text("Settings").font(.headline).padding(.horizontal)
+            VStack(spacing: 0) {
+                Toggle(isOn: $themeManager.isDarkMode) { Label("Dark Mode", systemImage: "moon.fill") }
+                    .tint(.red).padding()
+                Divider().background(Color.gray.opacity(0.3))
+                SettingsRow(title: "Privacy Policy", icon: "lock.shield.fill") { onShowInfoPage(.privacyPolicy) }
+                Divider().background(Color.gray.opacity(0.3))
+                SettingsRow(title: "Help & Support", icon: "questionmark.circle.fill") { onShowInfoPage(.helpAndSupport) }
+                Divider().background(Color.gray.opacity(0.3))
+                SettingsRow(title: "Log Out", icon: "arrow.right.square.fill", isDestructive: true, action: onSignOut)
+            }
+            .background(.regularMaterial).cornerRadius(16)
+        }
         .padding(.horizontal)
     }
 }
 
-struct SettingsRow: View {
+private struct SettingsRow: View {
     let title: String
     let icon: String
+    var isDestructive: Bool = false
+    let action: () -> Void
     
     var body: some View {
-        Button(action: {}) {
+        Button(action: action) {
             HStack {
-                Label(title, systemImage: icon)
-                    .foregroundColor(.white)
+                Label(title, systemImage: icon).foregroundColor(isDestructive ? .red : .primary)
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.gray)
-            }
-            .padding()
+                if !isDestructive { Image(systemName: "chevron.right").foregroundColor(.secondary) }
+            }.padding()
         }
     }
 }
 
-struct LogoutButton: View {
-    var body: some View {
-        Button(action: {}) {
-            HStack {
-                Label("Log Out", systemImage: "arrow.right.square.fill")
-                    .foregroundColor(.red)
-                Spacer()
+private struct InfoPage: Identifiable {
+    let id = UUID()
+    let type: PageType
+    
+    var title: String { type.title }
+    var content: String { type.content }
+    
+    enum PageType {
+        case privacyPolicy, helpAndSupport
+        
+        var title: String {
+            switch self {
+            case .privacyPolicy: return "Privacy Policy"
+            case .helpAndSupport: return "Help & Support"
             }
-            .padding()
+        }
+        
+        var content: String {
+            switch self {
+            case .privacyPolicy:
+                return """
+                # Privacy Policy for Movida App
+                **Last Updated: June 10, 2025**
+                
+                Welcome to Movida App! Your privacy is important to us.
+                
+                ## Information We Collect
+                - **Account Information:** When you create an account, we collect your email address.
+                - **Usage Data:** We collect information about how you use the app, such as your favorite movies and watchlist.
+                
+                ## How We Use Your Information
+                We use the information we collect to:
+                - Provide and maintain our service.
+                - Personalize your experience.
+                - Communicate with you about updates.
+                
+                """
+            case .helpAndSupport:
+                return """
+                # Help & Support
+                
+                Having trouble with Movida App? We're here to help!
+                
+                ## Frequently Asked Questions
+                **Q: How do I add a movie to my favorites?**
+                A: On the movie detail page, tap the heart icon to add it to your favorites.
+                
+                **Q: How do I change the theme?**
+                A: You can change the theme from the Settings section on your profile page.
+                
+                ## Contact Us
+                If you need further assistance, please email us at:
+                **support@movida-app.com**
+                """
+            }
         }
     }
-}
-
-
-struct UserProfile {
-    let name: String
-    let username: String
-    let profileImage: String
-    let moviesWatched: Int
-    let hoursWatched: Int
-    let watchlistCount: Int
 }
 
 struct MovieItemModel: Identifiable, Hashable {
-    let id = UUID()
+    let id: String
     let title: String
     let imageUrl: String
-}
-
-
-// MARK: - Preview
-
-struct ProfileView_Previews: PreviewProvider {
-    static var previews: some View {
-        ProfileView().preferredColorScheme(.dark)
-    }
 }

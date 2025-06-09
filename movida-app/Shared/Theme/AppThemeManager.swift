@@ -10,21 +10,10 @@ import SwiftUI
 import Combine
 
 class AppThemeManager: ObservableObject {
-    @Published var isDarkMode: Bool {
+    @AppStorage("isDarkMode") var isDarkMode: Bool = true {
         didSet {
-            UserDefaults.standard.set(isDarkMode, forKey: "isDarkMode")
+            objectWillChange.send()
         }
-    }
-
-    init() {
-        if UserDefaults.standard.object(forKey: "isDarkMode") == nil {
-            UserDefaults.standard.set(true, forKey: "isDarkMode")
-        }
-        self.isDarkMode = UserDefaults.standard.bool(forKey: "isDarkMode")
-    }
-
-    func toggle() {
-        isDarkMode.toggle()
     }
 
     var colorScheme: ColorScheme {

@@ -21,7 +21,7 @@ struct CustomTabBarView: View {
             ForEach(TabCategory.allCases, id: \.self) { tab in
                 VStack(spacing: 4) {
                     Text(tab.rawValue)
-                        .foregroundColor(selected == tab ? .orange : .white)
+                        .foregroundColor(selected == tab ? .orange : .primary)
                         .fontWeight(selected == tab ? .bold : .regular)
                     if selected == tab {
                         Capsule()

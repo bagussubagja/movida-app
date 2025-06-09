@@ -8,496 +8,300 @@ import SwiftUI
 import WebKit
 
 struct DetailMovieView: View {
+    @Binding var navigationPath: NavigationPath
     let movieId: String
+    
     @StateObject private var viewModel = DetailMovieViewModel()
 
     var body: some View {
         Group {
             switch (viewModel.detailState, viewModel.videoState) {
-            case (.idle, _), (.loading, _), (_, .loading):
+            case (.idle, _), (.loading, _), (_, .loading) where viewModel.movieDetail == nil:
                 ProgressView("Loading...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Tampilkan error jika fetch detail gagal
             case (.failure(let error), _):
                 ErrorView(error: error) {
-                    viewModel.fetchMovieDetail(id: movieId)
+                    viewModel.fetchMovieData(id: movieId)
                 }
             case (_, .failure(let error)) where viewModel.movieDetail == nil:
-                ErrorView(error: error) {
-                    viewModel.fetchMovieVideos(id: movieId)
+                 ErrorView(error: error) {
+                    viewModel.fetchMovieData(id: movieId)
                 }
             case (.success, _):
                 if let movie = viewModel.movieDetail {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            YouTubePlayerView(
-                                movie: movie,
-                                videos: viewModel.movieVideos,
-                                isVideoLoading: viewModel.isVideoLoading,
-                                videoError: viewModel.videoError
-                            )
-                            MovieMetadataView(movie: movie)
-                            MovieSynopsisView(movie: movie)
-                            DiscoverSectionView(
-                                similarMovies: viewModel.similarMovies,
-                                similarMovieState: viewModel.similarMovieState
-                            )
-                        }
-                        .padding(.bottom)
-                    }
+                    successView(for: movie)
                 }
             }
         }
         .onAppear {
-            viewModel.fetchMovieData(id: movieId)
+            if viewModel.movieDetail == nil {
+                viewModel.onAppear(movieId: movieId)
+            }
         }
         .navigationBarTitleDisplayMode(.inline)
     }
+    
+    private func successView(for movie: MovieDetail) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                YouTubePlayerView(
+                    movie: movie,
+                    videos: viewModel.movieVideos,
+                    isVideoLoading: viewModel.isVideoLoading,
+                    videoError: viewModel.videoError,
+                    isInWatchlist: viewModel.isInWatchlist,
+                    onPlayVideo: {
+                        viewModel.addToWatchlist()
+                    },
+                    onAddToWatchlist: {
+                        viewModel.addToWatchlist()
+                    }
+                )
+                MovieMetadataView(movie: movie, viewModel: viewModel)
+                MovieSynopsisView(movie: movie)
+                DiscoverSectionView(
+                    navigationPath: $navigationPath, similarMovies: viewModel.similarMovies,
+                    similarMovieState: viewModel.similarMovieState
+                )
+            }
+            .padding(.bottom)
+        }
+    }
 }
 
-// MARK: - Error View
 private struct ErrorView: View {
     let error: Error
     let retry: () -> Void
     
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.largeTitle)
-                .foregroundColor(.red)
-            
-            Text("Something went wrong")
-                .font(.headline)
-            
-            Text(error.localizedDescription)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
-            Button("Try Again") {
-                retry()
-            }
-            .buttonStyle(.borderedProminent)
+            Image(systemName: "exclamationmark.triangle.fill").font(.largeTitle).foregroundColor(.yellow)
+            Text("Terjadi Kesalahan").font(.headline)
+            Text(error.localizedDescription).font(.caption).foregroundColor(.secondary)
+                .multilineTextAlignment(.center).padding(.horizontal)
+            Button("Coba Lagi", action: retry).buttonStyle(.borderedProminent)
         }
         .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-// MARK: - YouTube Player View
 private struct YouTubePlayerView: View {
     let movie: MovieDetail
     let videos: [MovieVideo]
     let isVideoLoading: Bool
     let videoError: Error?
+    let isInWatchlist: Bool
+    var onPlayVideo: () -> Void
+    var onAddToWatchlist: () -> Void
     
     @State private var showPlayer = false
     @State private var selectedVideoIndex = 0
     
-    var body: some View {
-        VStack(spacing: 0) {
-            if showPlayer && !availableVideos.isEmpty {
-                VStack(spacing: 12) {
-                    YouTubeWebView(videoId: availableVideos[selectedVideoIndex].key)
-                        .frame(height: 220)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding(.horizontal)
-                    
-                    // Video selector if multiple videos available
-                    if availableVideos.count > 1 {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(Array(availableVideos.enumerated()), id: \.offset) { index, video in
-                                    VideoSelectorButton(
-                                        video: video,
-                                        isSelected: index == selectedVideoIndex
-                                    ) {
-                                        selectedVideoIndex = index
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                        }
-                    }
-                }
-            } else {
-                // Poster/Backdrop with play button
-                ZStack {
-                    if let posterURL = movie.fullBackdropURL {
-                        AsyncImage(url: posterURL) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
-                                    .frame(height: 220)
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(height: 220)
-                                    .clipped()
-                            case .failure:
-                                Image(systemName: "photo")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(height: 220)
-                                    .foregroundColor(.gray)
-                            @unknown default:
-                                EmptyView()
-                            }
-                        }
-                    }
-                    
-                    // Play button overlay
-                    VStack {
-                        if isVideoLoading {
-                            ProgressView()
-                                .tint(.white)
-                        } else if videoError != nil || availableVideos.isEmpty {
-                            // Show disabled play button if no videos or error
-                            Circle()
-                                .fill(Color.gray.opacity(0.6))
-                                .frame(width: 60, height: 60)
-                                .overlay(
-                                    Image(systemName: "play.slash.fill")
-                                        .foregroundColor(.white)
-                                        .font(.title2)
-                                )
-                        } else {
-                            Button(action: {
-                                showPlayer = true
-                            }) {
-                                Circle()
-                                    .fill(Color.black.opacity(0.6))
-                                    .frame(width: 60, height: 60)
-                                    .overlay(
-                                        Image(systemName: "play.fill")
-                                            .foregroundColor(.white)
-                                            .font(.title2)
-                                    )
-                            }
-                        }
-                    }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal)
-            }
-            
-            // Control buttons
-            if showPlayer || videoError != nil {
-                HStack(spacing: 20) {
-                    if showPlayer {
-                        Button("Close Player") {
-                            showPlayer = false
-                        }
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                    }
-                    
-                    Spacer()
-                    
-                    if let currentVideo = availableVideos.first {
-                        Text(currentVideo.name)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    } else if videoError != nil {
-                        Text("Videos unavailable")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-            }
-        }
-    }
-    
     private var availableVideos: [MovieVideo] {
         videos.filter { $0.isYouTube && ($0.isTrailer || $0.isTeaser) }
-            .sorted { (first: MovieVideo, second: MovieVideo) -> Bool in
-                // Prioritize trailers over teasers
-                if first.isTrailer && second.isTeaser {
-                    return true
-                } else if first.isTeaser && second.isTrailer {
-                    return false
-                }
-                // Then sort by published date (newest first)
-                return first.publishedAt > second.publishedAt
-            }
+              .sorted { $0.isTrailer && !$1.isTeaser }
     }
-}
-
-// MARK: - Video Selector Button
-private struct VideoSelectorButton: View {
-    let video: MovieVideo
-    let isSelected: Bool
-    let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Text(video.type)
-                    .font(.caption2.bold())
-                    .foregroundColor(isSelected ? .white : .primary)
+        VStack(spacing: 8) {
+            if showPlayer && !availableVideos.isEmpty {
+                YouTubeWebView(videoId: availableVideos[selectedVideoIndex].key)
+                    .frame(height: 220)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal)
+                    .transition(.asymmetric(insertion: .scale, removal: .opacity))
+            } else {
+                ZStack {
+                    AsyncImage(url: movie.fullBackdropURL) { image in
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } placeholder: { Color.gray.opacity(0.3) }
+                    .frame(height: 220).clipped()
                 
-                Text(video.name)
-                    .font(.caption2)
-                    .foregroundColor(isSelected ? .white : .secondary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
+                    
+                    VStack(spacing: 16) {
+                        if isVideoLoading {
+                            ProgressView().tint(.white)
+                        } else if videoError != nil || availableVideos.isEmpty {
+                            Image(systemName: "play.slash.fill").font(.largeTitle).foregroundColor(.white.opacity(0.7))
+                            
+                            if !isInWatchlist {
+                                Button(action: onAddToWatchlist) {
+                                    Label("Add to Watchlist", systemImage: "bookmark")
+                                        .font(.headline).foregroundColor(.white).padding(.horizontal, 16)
+                                        .padding(.vertical, 10).background(Color.blue.opacity(0.9))
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        } else {
+                            Button(action: {
+                                withAnimation { showPlayer = true }
+                                onPlayVideo()
+                            }) {
+                                Image(systemName: "play.circle.fill")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.white)
+                                    .background(.black.opacity(0.3), in: Circle())
+                                    .shadow(radius: 10)
+                            }
+                        }
+                    }
+                }
+                .frame(height: 220).clipShape(RoundedRectangle(cornerRadius: 12)).padding(.horizontal)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(isSelected ? Color.blue : Color.gray.opacity(0.2))
-            )
         }
-        .frame(width: 100)
-    }
-}
-
-// MARK: - YouTube WebView
-struct YouTubeWebView: UIViewRepresentable {
-    let videoId: String
-    
-    func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView()
-        webView.configuration.allowsInlineMediaPlayback = true
-        webView.configuration.mediaTypesRequiringUserActionForPlayback = []
-        return webView
-    }
-    
-    func updateUIView(_ uiView: WKWebView, context: Context) {
-        let embedHTML = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body { margin: 0; padding: 0; background: black; }
-                .video-container {
-                    position: relative;
-                    width: 100%;
-                    height: 0;
-                    padding-bottom: 56.25%; /* 16:9 aspect ratio */
-                }
-                .video-container iframe {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="video-container">
-                <iframe 
-                    src="https://www.youtube.com/embed/\(videoId)?autoplay=0&playsinline=1&controls=1&showinfo=0&rel=0"
-                    frameborder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen>
-                </iframe>
-            </div>
-        </body>
-        </html>
-        """
-        
-        uiView.loadHTMLString(embedHTML, baseURL: nil)
     }
 }
 
 private struct MovieMetadataView: View {
     let movie: MovieDetail
+    @ObservedObject var viewModel: DetailMovieViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
+            HStack(alignment: .top) {
                 Text(movie.title)
                     .font(.title2.bold())
-                Spacer()
-                Text("4K")
-                    .font(.caption.bold())
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Button(action: viewModel.toggleFavorite) {
+                    Image(systemName: viewModel.isFavorite ? "heart.fill" : "heart")
+                        .font(.title2).foregroundColor(viewModel.isFavorite ? .red : .gray)
+                        .padding(8).background(.ultraThinMaterial, in: Circle())
+                }
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: viewModel.isFavorite)
             }
 
             HStack(spacing: 16) {
-                if let runtime = movie.runtime {
+                if let runtime = movie.runtime, runtime > 0 {
                     Label("\(runtime) minutes", systemImage: "clock")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
-
                 Label(String(format: "%.1f", movie.voteAverage), systemImage: "star.fill")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
             }
-
-            Divider()
-
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("Release date")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(movie.releaseDate)
-                        .font(.subheadline)
-                }
-
-                Spacer()
-
-                VStack(alignment: .leading) {
-                    Text("Genre")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    HStack {
-                        ForEach(movie.genres, id: \.id) { genre in
-                            Text(genre.name)
-                                .font(.caption)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.gray.opacity(0.2))
-                                .cornerRadius(6)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(.horizontal)
-    }
-}
-
-// MARK: - Discover Section View
-private struct DiscoverSectionView: View {
-    let similarMovies: [SimilarMovie]
-    let similarMovieState: SimilarMovieViewState
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Discover")
-                .font(.headline)
-                .padding(.horizontal)
+            .font(.caption).foregroundColor(.secondary)
             
-            switch similarMovieState {
-            case .idle:
-                EmptyView()
-            case .loading:
+
+            ScrollView(.horizontal, showsIndicators: false) {
                 HStack {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                    Text("Loading similar movies...")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal)
-            case .failure(let error):
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Failed to load similar movies")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                    Text(error.localizedDescription)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal)
-            case .success:
-                if similarMovies.isEmpty {
-                    Text("No similar movies found")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal)
-                } else {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(similarMovies, id: \.id) { movie in
-                                SimilarMovieCard(movie: movie)
-                            }
-                        }
-                        .padding(.horizontal)
+                    ForEach(movie.genres, id: \.id) { genre in
+                        Text(genre.name)
+                            .font(.caption).padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(Color.gray.opacity(0.2)).cornerRadius(8)
                     }
                 }
             }
-        }
-    }
-}
-
-// MARK: - Similar Movie Card
-private struct SimilarMovieCard: View {
-    let movie: SimilarMovie
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Movie Poster
-            AsyncImage(url: movie.posterURL) { phase in
-                switch phase {
-                case .empty:
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 120, height: 180)
-                        .overlay(
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        )
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 120, height: 180)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                case .failure:
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 120, height: 180)
-                        .overlay(
-                            Image(systemName: "photo")
-                                .foregroundColor(.gray)
-                                .font(.title2)
-                        )
-                @unknown default:
-                    EmptyView()
-                }
-            }
-            
-            // Movie Info
-            VStack(alignment: .leading, spacing: 4) {
-                Text(movie.title)
-                    .font(.caption.bold())
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                
-                HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .foregroundColor(.yellow)
-                        .font(.caption2)
-                    Text(String(format: "%.1f", movie.voteAverage))
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                
-                Text(movie.releaseDateString ?? "")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .frame(width: 120)
+        }.padding(.horizontal)
     }
 }
 
 private struct MovieSynopsisView: View {
     let movie: MovieDetail
-
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Synopsis")
-                .font(.headline)
+            Text("Synopsis").font(.headline)
+            Text(movie.overview).font(.body).foregroundColor(.secondary)
+        }.padding(.horizontal)
+    }
+}
 
-            Text(movie.overview)
-                .font(.body)
-                .foregroundColor(.primary)
+private struct DiscoverSectionView: View {
+    @Binding var navigationPath: NavigationPath
+    let similarMovies: [SimilarMovie]
+    let similarMovieState: SimilarMovieViewState
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Discover More").font(.headline).padding(.horizontal)
+            switch similarMovieState {
+            case .loading:
+                ProgressView().padding(.horizontal)
+            case .failure:
+                Text("Failed to fetch movies data").font(.caption).foregroundColor(.red).padding(.horizontal)
+            case .success where similarMovies.isEmpty:
+                Text("Similar movie not found").font(.caption).foregroundColor(.secondary).padding(.horizontal)
+            case .success:
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(similarMovies, id: \.id) { movie in
+                            SimilarMovieCard(
+                                navigationPath: $navigationPath,
+                                movie: movie
+                            )
+                        }
+                    }.padding(.horizontal)
+                }
+            default:
+                EmptyView()
+            }
         }
-        .padding(.horizontal)
+    }
+}
+
+private struct SimilarMovieCard: View {
+    @Binding var navigationPath: NavigationPath
+    let movie: SimilarMovie
+    
+    var body: some View {
+        Button(action: {
+            navigationPath.append(AppRoute.detail(String(movie.id)))
+        }) {
+            VStack(alignment: .leading, spacing: 8) {
+                AsyncImage(url: movie.posterURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    case .failure:
+                        Image(systemName: "photo.fill").foregroundColor(.gray)
+                    default:
+                        ProgressView()
+                    }
+                }
+                .frame(width: 120, height: 180)
+                .background(Color.gray.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(movie.title)
+                        .font(.caption.bold())
+                        .lineLimit(1)
+                        .multilineTextAlignment(.leading)
+                }
+            }
+            .frame(width: 120)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+private struct YouTubeWebView: UIViewRepresentable {
+    let videoId: String
+    
+    func makeUIView(context: Context) -> WKWebView {
+        let prefs = WKWebpagePreferences()
+        prefs.allowsContentJavaScript = true
+        let config = WKWebViewConfiguration()
+        config.defaultWebpagePreferences = prefs
+        
+        let webView = WKWebView(frame: .zero, configuration: config)
+        webView.isOpaque = false
+        webView.backgroundColor = .clear
+        webView.scrollView.backgroundColor = .clear
+        return webView
+    }
+    
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        let embedHTML = """
+        <!DOCTYPE html><html><head><style>
+        body { margin:0; padding:0; background:black; }
+        .video-container { position:relative; width:100%; height:0; padding-bottom:56.25%; }
+        .video-container iframe { position:absolute; top:0; left:0; width:100%; height:100%; }
+        </style></head><body><div class="video-container">
+        <iframe src="https://www.youtube.com/embed/\(videoId)?playsinline=1&showinfo=0&rel=0&controls=1"
+        frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+        </div></body></html>
+        """
+        uiView.loadHTMLString(embedHTML, baseURL: nil)
     }
 }

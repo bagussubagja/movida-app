@@ -7,37 +7,41 @@
 
 import SwiftUI
 
+
 struct DashboardView: View {
     @Binding var navigationPath: NavigationPath
+    var onSignOut: () -> Void
+    
     @State private var selectedTab: Int = 0
     @Namespace private var animationNamespace
 
     var body: some View {
-        ZStack {
-            VStack(spacing: 0) {
-                Group {
-                    switch selectedTab {
-                    case 0:
-                        TrendingView(navigationPath: $navigationPath)
-                    case 1:
-                        HomeView(navigationPath: $navigationPath)
-                    case 2:
-                        ProfileView()
-                    default:
-                        Text("Not Found!")
-                    }
+        ZStack(alignment: .bottom) {
+            Group {
+                switch selectedTab {
+                case 0:
+                    TrendingView(navigationPath: $navigationPath)
+                case 1:
+                    HomeView(navigationPath: $navigationPath)
+                case 2:
+                    ProfileView(navigationPath: $navigationPath, onSignOut: onSignOut)
+                default:
+                    Text("Not Found!")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                
-                CustomTabBar(selectedTab: $selectedTab, namespace: animationNamespace)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
-                    .shadow(radius: 2)
-                    .padding(.bottom, 20)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            CustomTabBar(selectedTab: $selectedTab, namespace: animationNamespace)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+                .shadow(color: .primary.opacity(0.15), radius: 10, y: 5)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 20)
         }
+        .ignoresSafeArea(.all, edges: .bottom)
     }
 }
 
@@ -64,29 +68,29 @@ struct TabButton: View {
 
     var body: some View {
         Button(action: {
-            withAnimation(.spring()) {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.7, blendDuration: 0.7)) {
                 selectedTab = index
             }
         }) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(selectedTab == index ? .white : .gray)
-
+                    .foregroundColor(selectedTab == index ? .white : .secondary)
+                
                 if selectedTab == index {
                     Text(title)
+                        .font(.subheadline).fontWeight(.bold)
                         .foregroundColor(.white)
-                        .font(.subheadline)
                         .matchedGeometryEffect(id: "label_\(index)", in: namespace)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
             .background(
                 ZStack {
                     if selectedTab == index {
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(AppColors.orangeAccent)
+                        Capsule()
+                            .fill(Color.red)
                             .matchedGeometryEffect(id: "bg", in: namespace)
                     }
                 }
@@ -95,4 +99,3 @@ struct TabButton: View {
         .buttonStyle(PlainButtonStyle())
     }
 }
-

@@ -18,20 +18,22 @@ struct CustomMovieCardView: View {
             AsyncImage(url: URL(string: imageUrl)) { image in
                 image
                     .resizable()
-                    .aspectRatio(1, contentMode: .fill)
+                    .aspectRatio(2/3, contentMode: .fill)
                     .cornerRadius(20)
             } placeholder: {
                 Color.gray.opacity(0.3)
-                    .aspectRatio(1, contentMode: .fill)
+                    .aspectRatio(2/3, contentMode: .fill)
                     .cornerRadius(20)
             }
+               .frame(height: 240)
+               .frame(maxWidth: .infinity)
+               .clipped()
             Text(title)
                 .font(.headline)
-                .foregroundColor(.white)
+                .lineLimit(1)
             Text("(\(year))")
                 .font(.subheadline)
                 .foregroundColor(.gray)
         }
-        .frame(width: 160)
     }
 }

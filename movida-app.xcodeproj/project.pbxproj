@@ -10,6 +10,9 @@
 		FF1F83E72DE9A0CC00FCA552 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = FF1F83E62DE9A0CC00FCA552 /* Alamofire */; };
 		FF1F83EA2DE9A17900FCA552 /* RealmSwift in Frameworks */ = {isa = PBXBuildFile; productRef = FF1F83E92DE9A17900FCA552 /* RealmSwift */; };
 		FF1F84C02DEB130200FCA552 /* YouTubePlayerKit in Frameworks */ = {isa = PBXBuildFile; productRef = FF1F84BF2DEB130200FCA552 /* YouTubePlayerKit */; };
+		FF8E425B2DF5C3E200E741A3 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = FF8E425A2DF5C3E200E741A3 /* FirebaseCore */; };
+		FF8E425D2DF5C3E200E741A3 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = FF8E425C2DF5C3E200E741A3 /* FirebaseFirestore */; };
+		FF8E429E2DF5FA3200E741A3 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = FF8E429D2DF5FA3200E741A3 /* FirebaseAuth */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,7 +52,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				FF1F83EA2DE9A17900FCA552 /* RealmSwift in Frameworks */,
+				FF8E429E2DF5FA3200E741A3 /* FirebaseAuth in Frameworks */,
 				FF1F83E72DE9A0CC00FCA552 /* Alamofire in Frameworks */,
+				FF8E425B2DF5C3E200E741A3 /* FirebaseCore in Frameworks */,
+				FF8E425D2DF5C3E200E741A3 /* FirebaseFirestore in Frameworks */,
 				FF1F84C02DEB130200FCA552 /* YouTubePlayerKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -112,6 +118,9 @@
 				FF1F83E62DE9A0CC00FCA552 /* Alamofire */,
 				FF1F83E92DE9A17900FCA552 /* RealmSwift */,
 				FF1F84BF2DEB130200FCA552 /* YouTubePlayerKit */,
+				FF8E425A2DF5C3E200E741A3 /* FirebaseCore */,
+				FF8E425C2DF5C3E200E741A3 /* FirebaseFirestore */,
+				FF8E429D2DF5FA3200E741A3 /* FirebaseAuth */,
 			);
 			productName = "movida-app";
 			productReference = FF1F82F22DE998E700FCA552 /* movida-app.app */;
@@ -193,6 +202,7 @@
 				FF1F83E52DE9A0CC00FCA552 /* XCRemoteSwiftPackageReference "Alamofire" */,
 				FF1F83E82DE9A17900FCA552 /* XCRemoteSwiftPackageReference "realm-swift" */,
 				FF1F84BE2DEB130200FCA552 /* XCRemoteSwiftPackageReference "YouTubePlayerKit" */,
+				FF8E42592DF5C3E200E741A3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FF1F82F32DE998E700FCA552 /* Products */;
@@ -583,6 +593,14 @@
 				minimumVersion = 2.0.0;
 			};
 		};
+		FF8E42592DF5C3E200E741A3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.14.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -600,6 +618,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FF1F84BE2DEB130200FCA552 /* XCRemoteSwiftPackageReference "YouTubePlayerKit" */;
 			productName = YouTubePlayerKit;
+		};
+		FF8E425A2DF5C3E200E741A3 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FF8E42592DF5C3E200E741A3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		FF8E425C2DF5C3E200E741A3 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FF8E42592DF5C3E200E741A3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		FF8E429D2DF5FA3200E741A3 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FF8E42592DF5C3E200E741A3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

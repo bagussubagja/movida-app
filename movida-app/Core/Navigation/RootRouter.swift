@@ -1,5 +1,6 @@
 import SwiftUI
 
+
 struct RootRouter: View {
     @State private var path = NavigationPath()
     @StateObject private var themeManager = AppThemeManager()
@@ -9,20 +10,23 @@ struct RootRouter: View {
         NavigationStack(path: $path) {
             Group {
                 if isLoggedIn {
-                    DashboardView(navigationPath: $path)
+                    DashboardView(
+                        navigationPath: $path,
+                        onSignOut: { isLoggedIn = false }
+                    )
                 } else {
-                    LoginView(onLoginSuccess: {
-                        isLoggedIn = true
-                    })
+                    LoginView(onLoginSuccess: { isLoggedIn = true })
                 }
             }
             .navigationDestination(for: AppRoute.self) { route in
                 switch route {
                 case .detail(let id):
-                    DetailMovieView(movieId: id)
+                    DetailMovieView(navigationPath: $path, movieId: id)
                 }
             }
         }
+        .preferredColorScheme(themeManager.colorScheme)
+        .environmentObject(themeManager)
     }
 }
 

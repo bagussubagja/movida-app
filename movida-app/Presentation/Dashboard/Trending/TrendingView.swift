@@ -23,20 +23,27 @@ struct TrendingView: View {
                         .foregroundColor(AppColors.orangeAccent)
                     Text("Everywhere")
                         .font(.title)
-                        .foregroundColor(.white)
                 }
                 
-                ContinueWatchingCardView(
-                    imageURL: URL(string: Constant.placeholderImage),
-                    title: "Ready Player one",
-                    subtitle: "Continue Watching"
-                )
+                if let lastWatched = viewModel.lastWatchedMovie {
+                    Button(action: {
+                        navigationPath.append(AppRoute.detail(lastWatched.id))
+                    }) {
+                        ContinueWatchingCardView(
+                            imageURL: URL(string: lastWatched.imageUrl),
+                            title: lastWatched.title,
+                            subtitle: "Continue Watching"
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                } else {
+                    StartWatchingPlaceholderView()
+                }
                 
                 SpaceBox(height: 16)
                 
                 Text("Trending")
                     .font(.title2)
-                    .foregroundColor(.white)
                 
                 VStack {
                     switch viewModel.state {
@@ -104,11 +111,51 @@ struct TrendingView: View {
             .padding(.vertical)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
+        .refreshable {
+            await viewModel.refresh()
+        }
         .onAppear {
-            viewModel.fetchTrendingMovies()
+            viewModel.onAppear()
         }
     }
 }
+
+private struct StartWatchingPlaceholderView: View {
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.regularMaterial)
+                .overlay(
+                    LinearGradient(
+                        colors: [.red.opacity(0.4), .clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                )
+
+            HStack(spacing: 16) {
+                Image(systemName: "popcorn.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(.red)
+                    .shadow(color: .red.opacity(0.5), radius: 5, y: 5)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Start Your Adventure")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Text("The first movie you watch will appear here.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .padding()
+        }
+        .frame(height: 120)
+    }
+}
+
 
 struct TrendingMovieShimmerView: View {
     var body: some View {

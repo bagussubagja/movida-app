@@ -32,6 +32,17 @@ class HomeViewModel: ObservableObject {
         self.tvUseCase = tvUseCase
         self.searchUseCase = searchUseCase
     }
+    
+    func refresh(for tab: TabCategory) async {
+            switch tab {
+            case .movies:
+                self.movieState = .idle
+                fetchNowPlayingMovies()
+            case .tvSeries:
+                self.tvState = .idle
+                fetchAiredTvShows()
+            }
+        }
 
     func fetchNowPlayingMovies() {
         movieState = .loading

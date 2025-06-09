@@ -38,6 +38,9 @@ struct HomeView: View {
         .onAppear {
             loadCurrentTab()
         }
+        .refreshable {
+            await viewModel.refresh(for: selectedTab)
+        }
         .onChange(of: selectedTab) { _ in
             loadCurrentTab()
         }
@@ -116,50 +119,50 @@ struct HomeView: View {
     }
 
     private var searchResultsView: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
+        LazyVStack(spacing: 16) {
             ForEach(viewModel.searchResults) { movie in
-                SearchGridItem(movie: movie, navigationPath: $navigationPath)
+                SearchResultRow(movie: movie, navigationPath: $navigationPath)
             }
         }
         .padding(.horizontal)
     }
 }
 
-struct SearchGridItem: View {
+struct SearchResultRow: View {
     let movie: MovieSearch
     @Binding var navigationPath: NavigationPath
 
     var body: some View {
-        let year = String(movie.releaseDateString?.prefix(4) ?? "")
+        let year = String(movie.releaseDateString?.prefix(4) ?? "N/A")
         let imageUrl = Constant.imageBaseURL + (movie.posterPathString ?? "")
 
         Button {
             navigationPath.append(AppRoute.detail(String(movie.id)))
         } label: {
-            VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 16) {
                 AsyncImage(url: URL(string: imageUrl)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
+                    image.resizable()
+                         .aspectRatio(contentMode: .fill)
                 } placeholder: {
-                    Color.gray.opacity(0.2)
+                    Color.secondary.opacity(0.3)
                 }
-                .frame(height: 180)
-                .frame(maxWidth: .infinity)
-                .clipped()
-                .cornerRadius(12)
+                .frame(width: 90, height: 135)
+                .cornerRadius(8)
 
-                Text(movie.title)
-                    .font(.headline)
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(movie.title)
+                        .font(.headline)
+                        .lineLimit(2)
+                        .foregroundColor(.primary)
 
-                Text(year)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(year)
+                    
+                    Text(movie.overview)
+                        .lineLimit(2)
+                    
+                    Spacer()
+                }
             }
-            .padding(.bottom, 8)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -190,9 +193,7 @@ struct TVGridItem: View {
         let year = String(tvShow.firstAirDateString?.prefix(4) ?? "")
         let imageUrl = Constant.imageBaseURL + (tvShow.posterPathString ?? "")
 
-        Button {
-            // Navigasi TV Show jika perlu
-        } label: {
+        Button {} label: {
             CustomMovieCardView(title: tvShow.name, year: year, imageUrl: imageUrl)
         }
         .buttonStyle(PlainButtonStyle())

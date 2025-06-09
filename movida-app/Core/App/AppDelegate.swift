@@ -8,10 +8,15 @@
 
 import UIKit
 import UserNotifications
+import FirebaseCore
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication,
      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+
+        UNUserNotificationCenter.current().delegate = self
+        
+        FirebaseApp.configure()
 
         UNUserNotificationCenter.current().delegate = self
        
