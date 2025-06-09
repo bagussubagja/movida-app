@@ -1,5 +1,7 @@
 # Movida App 🍿
 
+![Uploading Slide 16_9 - 1.png…]()
+
 Movida App is a modern iOS application for discovering and tracking movies, built entirely with SwiftUI. This app is designed with a clean and scalable architecture, integrating cloud and local database technologies to create a feature-rich and high-performance user experience.
 
 ## ✨ Key Features
