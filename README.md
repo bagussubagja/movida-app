@@ -1,6 +1,6 @@
 # Movida App 🍿
 
-![Uploading Slide 16_9 - 1.png…]()
+![Slide 16_9 - 1 (3)](https://github.com/user-attachments/assets/a83a8794-8fa2-4c80-871a-a736624ea86d)
 
 Movida App is a modern iOS application for discovering and tracking movies, built entirely with SwiftUI. This app is designed with a clean and scalable architecture, integrating cloud and local database technologies to create a feature-rich and high-performance user experience.
 
@@ -36,7 +36,7 @@ To run this project locally:
 
 1. **Clone this repository:**
    ```bash
-   git clone [https://github.com/bagussubagja/movida-app.git](https://github.com/bagussubagja/movida-app.git)
+   git clone https://github.com/bagussubagja/movida-app.git
    ```
 
 2. **Open in Xcode:**
